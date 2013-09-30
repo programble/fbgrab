@@ -3,12 +3,23 @@
 ### modular. So this is a simple gnu Makefile...
 ###
 
-fbgrab: fbgrab.c
-	gcc -g -Wall fbgrab.c -lpng -lz -o fbgrab
+.DELETE_ON_ERROR:
+.PHONY: install clean all
 
-install:
-	install fbgrab /usr/bin/fbgrab
-	install fbgrab.1.man /usr/man/man1/fbgrab.1
+GZIP := gzip
+GZIPFLAGS := --best --to-stdout
+
+all: fbgrab fbgrab.1.gz
+
+fbgrab: fbgrab.c
+	$(CC) -g -Wall $(CFLAGS) $(LDFLAGS) $< -lpng -lz -o $@
+
+fbgrab.1.gz: fbgrab.1.man
+	$(GZIP) $(GZIPFLAGS) $< > $@
+
+install: fbgrab fbgrab.1.gz
+	install -D -m 0755 fbgrab $(DESTDIR)/usr/bin/fbgrab
+	install -D -m 0644 fbgrab.1.gz $(DESTDIR)/usr/man/man1/fbgrab.1.gz
 
 clean:
-	rm -f fbgrab *~ \#*\#
+	-$(RM) fbgrab fbgrab.1.gz *~ \#*\#

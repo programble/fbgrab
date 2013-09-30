@@ -26,7 +26,7 @@
 #include <zlib.h>
 #include <linux/fb.h> /* to handle framebuffer ioctls */
 
-#define	VERSION	"1.0 beta 1"
+#define	VERSION	"1.2"
 #define	DEFAULT_FB	"/dev/fb0"
 #define MAX_LEN 512
 #define UNDEFINED -1
@@ -44,31 +44,32 @@ static int Alpha = 3;
 
 static void usage(char *binary)
 {
-    printf("Usage:   %s\t[-hi] [-{C|c} vt] [-d dev] [-s n]\n"
+    fprintf(stderr, "Usage:   %s\t[-hi] [-{C|c} vt] [-d dev] [-s n] [-z n]\n"
 	   "\t\t[-f fromfile -w n -h n -b n] filename.png\n", binary);
 }
 
 static void help(char *binary)
 {
-    printf("fbgrab - takes screenshots using the framebuffer, v%s\n", VERSION);
+    fprintf(stderr, "fbgrab - takes screenshots using the framebuffer, v%s\n", VERSION);
      
     usage(binary);
     
-    printf("\nPossible options:\n");
+    fprintf(stderr, "\nPossible options:\n");
 /* please keep this list alphabetical */
-    printf("\t-b n  \tforce use of n bits/pixel, required when reading from file\n");
-    printf("\t-C n  \tgrab from console n, for slower framebuffers\n");
-    printf("\t-c n  \tgrab from console n\n");
-    printf("\t-d dev\tuse framebuffer device dev instead of default\n");
-    printf("\t-f file\t read from file instead of framebuffer\n");
-    printf("\t-h n  \tset height to n pixels, required when reading from file\n"
+    fprintf(stderr, "\t-b n  \tforce use of n bits/pixel, required when reading from file\n");
+    fprintf(stderr, "\t-C n  \tgrab from console n, for slower framebuffers\n");
+    fprintf(stderr, "\t-c n  \tgrab from console n\n");
+    fprintf(stderr, "\t-d dev\tuse framebuffer device dev instead of default\n");
+    fprintf(stderr, "\t-f file\t read from file instead of framebuffer\n");
+    fprintf(stderr, "\t-h n  \tset height to n pixels, required when reading from file\n"
 	   "\t\tcan be used to force height when reading from framebuffer\n");
-    printf("\t-i    \tturns on interlacing in PNG\n");
-    printf("\t-s n  \tsleep n seconds before making screenshot\n");
-    printf("\t-v    \tverbose, print debug information.\n");
-    printf("\t-w n  \tset width to n pixels, required when reading from file\n"
+    fprintf(stderr, "\t-i    \tturns on interlacing in PNG\n");
+    fprintf(stderr, "\t-s n  \tsleep n seconds before making screenshot\n");
+    fprintf(stderr, "\t-v    \tverbose, print debug information.\n");
+    fprintf(stderr, "\t-w n  \tset width to n pixels, required when reading from file\n"
 	   "\t\tcan be used to force width when reading from framebuffer\n");
-    printf("\t-?    \tprint this usage information\n");
+    fprintf(stderr, "\t-z n  \tPNG compression level: 0 (fast) .. 9 (best)\n");
+    fprintf(stderr, "\t-?    \tprint this usage information\n");
 }
 
 
@@ -119,7 +120,7 @@ static void get_framebufferdata(char *device, struct fb_var_screeninfo *fb_varin
     /* now open framebuffer device */
     if(-1 == (fd=open(device, O_RDONLY)))
     {
-	fprintf (stderr, "Error: Couldn't open %s.\n", device);
+	fprintf(stderr, "Error: Couldn't open %s.\n", device);
 	exit(EXIT_FAILURE);
     }
 
@@ -131,42 +132,42 @@ static void get_framebufferdata(char *device, struct fb_var_screeninfo *fb_varin
 
     if (verbose)
     {
-    	printf("frame buffer fixed info:\n");
-	printf("id: \"%s\"\n", fb_fixedinfo.id);
+        fprintf(stderr, "frame buffer fixed info:\n");
+        fprintf(stderr, "id: \"%s\"\n", fb_fixedinfo.id);
     	switch (fb_fixedinfo.type) 
     	{
     	case FB_TYPE_PACKED_PIXELS:
-		printf("type: packed pixels\n");
+		fprintf(stderr, "type: packed pixels\n");
 		break;
     	case FB_TYPE_PLANES:
-		printf("type: non interleaved planes\n");
+		fprintf(stderr, "type: non interleaved planes\n");
 		break;
     	case FB_TYPE_INTERLEAVED_PLANES:
-		printf("type: interleaved planes\n");
+		fprintf(stderr, "type: interleaved planes\n");
 		break;
     	case FB_TYPE_TEXT:
-		printf("type: text/attributes\n");
+		fprintf(stderr, "type: text/attributes\n");
 		break;	
     	case FB_TYPE_VGA_PLANES:
-		printf("type: EGA/VGA planes\n");
+		fprintf(stderr, "type: EGA/VGA planes\n");
 		break;
     	default:
-		printf("type: undefined!\n");
+		fprintf(stderr, "type: undefined!\n");
 		break;
     	}
-	printf("line length: %i bytes (%i pixels)\n", fb_fixedinfo.line_length, fb_fixedinfo.line_length/(fb_varinfo_p->bits_per_pixel/8));
+        fprintf(stderr, "line length: %i bytes (%i pixels)\n", fb_fixedinfo.line_length, fb_fixedinfo.line_length/(fb_varinfo_p->bits_per_pixel/8));
     
-	printf("\nframe buffer variable info:\n");
-	printf("resolution: %ix%i\n", fb_varinfo_p->xres, fb_varinfo_p->yres);
-	printf("virtual resolution: %ix%i\n", fb_varinfo_p->xres_virtual, fb_varinfo_p->yres_virtual);
-    	printf("offset: %ix%i\n", fb_varinfo_p->xoffset, fb_varinfo_p->yoffset);
-    	printf("bits_per_pixel: %i\n", fb_varinfo_p->bits_per_pixel);
-    	printf("grayscale: %s\n", fb_varinfo_p->grayscale ? "true" : "false");
-    	printf("red:   offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->red.offset, fb_varinfo_p->red.length, fb_varinfo_p->red.msb_right);
-    	printf("blue:  offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->blue.offset, fb_varinfo_p->green.length, fb_varinfo_p->green.msb_right);
-    	printf("green: offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->green.offset, fb_varinfo_p->blue.length, fb_varinfo_p->blue.msb_right);
-    	printf("alpha: offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->transp.offset, fb_varinfo_p->transp.length, fb_varinfo_p->transp.msb_right);
-    	printf("pixel format: %s\n", fb_varinfo_p->nonstd == 0 ? "standard" : "non-standard");
+        fprintf(stderr, "\nframe buffer variable info:\n");
+        fprintf(stderr, "resolution: %ix%i\n", fb_varinfo_p->xres, fb_varinfo_p->yres);
+        fprintf(stderr, "virtual resolution: %ix%i\n", fb_varinfo_p->xres_virtual, fb_varinfo_p->yres_virtual);
+        fprintf(stderr, "offset: %ix%i\n", fb_varinfo_p->xoffset, fb_varinfo_p->yoffset);
+        fprintf(stderr, "bits_per_pixel: %i\n", fb_varinfo_p->bits_per_pixel);
+        fprintf(stderr, "grayscale: %s\n", fb_varinfo_p->grayscale ? "true" : "false");
+        fprintf(stderr, "red:   offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->red.offset, fb_varinfo_p->red.length, fb_varinfo_p->red.msb_right);
+        fprintf(stderr, "blue:  offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->blue.offset, fb_varinfo_p->green.length, fb_varinfo_p->green.msb_right);
+        fprintf(stderr, "green: offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->green.offset, fb_varinfo_p->blue.length, fb_varinfo_p->blue.msb_right);
+        fprintf(stderr, "alpha: offset: %i, length: %i, msb_right: %i\n", fb_varinfo_p->transp.offset, fb_varinfo_p->transp.length, fb_varinfo_p->transp.msb_right);
+        fprintf(stderr, "pixel format: %s\n", fb_varinfo_p->nonstd == 0 ? "standard" : "non-standard");
     }
     Blue = fb_varinfo_p->blue.offset >> 3;
     Green = fb_varinfo_p->green.offset >> 3;
@@ -182,7 +183,7 @@ static void read_framebuffer(char *device, size_t bytes, unsigned char *buf_p)
 
     if(-1 == (fd=open(device, O_RDONLY)))
     {
-	fprintf (stderr, "Error: Couldn't open %s.\n", device);
+	fprintf(stderr, "Error: Couldn't open %s.\n", device);
 	exit(EXIT_FAILURE);
     }
 
@@ -270,23 +271,29 @@ static void convert8888to32(int width, int height,
 
 
 static void write_PNG(unsigned char *outbuffer, char *filename, 
-				int width, int height, int interlace)
+				int width, int height, int interlace, int compression)
 {
     int i;
     int bit_depth=0, color_type;
     png_bytep row_pointers[height];
     png_structp png_ptr;
     png_infop info_ptr;
-    FILE *outfile = fopen(filename, "wb");
+    FILE *outfile;
+
+    if (strcmp(filename, "-") == 0)
+        outfile = stdout;
+    else {
+        outfile = fopen(filename, "wb");
+        if (!outfile)
+        {
+            fprintf(stderr, "Error: Couldn't fopen %s.\n", filename);
+            exit(EXIT_FAILURE);
+        }
+    }
 
     for (i=0; i<height; i++)
 	row_pointers[i] = outbuffer + i * 4 * width;
     
-    if (!outfile)
-    {
-	fprintf (stderr, "Error: Couldn't fopen %s.\n", filename);
-	exit(EXIT_FAILURE);
-    }
     
     png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 
 	(png_voidp) NULL, (png_error_ptr) NULL, (png_error_ptr) NULL);
@@ -316,7 +323,7 @@ static void write_PNG(unsigned char *outbuffer, char *filename,
     
     png_write_info(png_ptr, info_ptr);
     
-    printf ("Now writing PNG file\n");
+    fprintf(stderr, "Now writing PNG file (compression %d)\n", compression);
     
     png_write_image(png_ptr, row_pointers);
     
@@ -330,7 +337,7 @@ static void write_PNG(unsigned char *outbuffer, char *filename,
 		  released memory of png_ptr and info_ptr */
 
 static void convert_and_write(unsigned char *inbuffer, char *filename, 
-				int width, int height, int bits, int interlace)
+				int width, int height, int bits, int interlace, int compression)
 {
     size_t bufsize = (size_t) width * height * 4;
 
@@ -341,25 +348,25 @@ static void convert_and_write(unsigned char *inbuffer, char *filename,
     
     memset(outbuffer, 0, bufsize);
 
-    printf ("Converting image from %i\n", bits);
+    fprintf(stderr, "Converting image from %i\n", bits);
     
     switch(bits) 
     {
     case 15:
 	convert1555to32(width, height, inbuffer, outbuffer);
-	write_PNG(outbuffer, filename, width, height, interlace);
+	write_PNG(outbuffer, filename, width, height, interlace, compression);
 	break;
     case 16:
 	convert565to32(width, height, inbuffer, outbuffer);
-	write_PNG(outbuffer, filename, width, height, interlace);
+	write_PNG(outbuffer, filename, width, height, interlace, compression);
 	break;
     case 24:
 	convert888to32(width, height, inbuffer, outbuffer);
-	write_PNG(outbuffer, filename, width, height, interlace);
+	write_PNG(outbuffer, filename, width, height, interlace, compression);
 	break;
     case 32:
 	convert8888to32(width, height, inbuffer, outbuffer);
-	write_PNG(outbuffer, filename, width, height, interlace);
+	write_PNG(outbuffer, filename, width, height, interlace, compression);
 	break;
     default:
 	fprintf(stderr, "%d bits per pixel are not supported! ", bits);
@@ -388,6 +395,7 @@ int main(int argc, char **argv)
     int waitbfg=0; /* wait before grabbing (for -C )... */
     int interlace = PNG_INTERLACE_NONE;
     int verbose = 0;
+    int png_compression = Z_DEFAULT_COMPRESSION;
 
     memset(infile, 0, MAX_LEN);
     memset(&fb_varinfo, 0, sizeof(struct fb_var_screeninfo));
@@ -395,7 +403,7 @@ int main(int argc, char **argv)
 
     for(;;)
     {
-	optc=getopt(argc, argv, "f:w:b:gh:iC:c:d:s:?:v");
+	optc=getopt(argc, argv, "f:z:w:b:h:iC:c:d:s:?v");
 	if (optc==-1)
 	    break;
 	switch (optc) 
@@ -434,6 +442,9 @@ int main(int argc, char **argv)
 	case 'w':
 	    width = atoi(optarg);
 	    break;    
+	case 'z':
+	    png_compression = atoi(optarg);
+	    break;
 	default:
 	    usage(argv[0]);
 	}
@@ -455,7 +466,7 @@ int main(int argc, char **argv)
     {
 	if (UNDEFINED == bitdepth || UNDEFINED == width || UNDEFINED == height)
 	{
-	    printf("Width, height and bitdepth are mandatory when reading from file\n");
+	    fprintf(stderr, "Width, height and bitdepth are mandatory when reading from file\n");
 	    exit(EXIT_FAILURE);
 	}
     }
@@ -481,7 +492,7 @@ int main(int argc, char **argv)
 	if (UNDEFINED == height)
 	    height = (int) fb_varinfo.yres;
 
-	printf("Resolution: %ix%i depth %i\n", width, height, bitdepth);
+	fprintf(stderr, "Resolution: %ix%i depth %i\n", width, height, bitdepth);
 
 	strncpy(infile, device, MAX_LEN - 1);
     }
@@ -500,7 +511,7 @@ int main(int argc, char **argv)
     if (UNDEFINED != old_vt)
 	(void) change_to_vt((unsigned short int) old_vt);
 
-    convert_and_write(buf_p, outfile, width, height, bitdepth, interlace);
+    convert_and_write(buf_p, outfile, width, height, bitdepth, interlace, png_compression);
    
     (void) free(buf_p);
 
